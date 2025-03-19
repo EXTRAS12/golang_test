@@ -1,0 +1,274 @@
+basePath: /api
+definitions:
+  models.Lyric:
+    properties:
+      id:
+        example: 1
+        type: integer
+      order:
+        example: 1
+        type: integer
+      song_id:
+        example: 1
+        type: integer
+      text:
+        example: Is this the real life? Is this just fantasy?
+        type: string
+    type: object
+  models.Song:
+    properties:
+      group:
+        example: Queen
+        type: string
+      id:
+        example: 1
+        type: integer
+      lyrics:
+        items:
+          $ref: '#/definitions/models.Lyric'
+        type: array
+      song:
+        example: Bohemian Rhapsody
+        type: string
+    type: object
+  models.SongDetail:
+    properties:
+      link:
+        example: https://www.youtube.com/watch?v=fJ9rUzIMcZQ
+        type: string
+      releaseDate:
+        example: "1975-10-31"
+        type: string
+      text:
+        example: Is this the real life? Is this just fantasy?
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API для работы с песнями и их текстами
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Song API
+  version: "1.0"
+paths:
+  /api/songs:
+    get:
+      consumes:
+      - application/json
+      description: Получить список песен с возможностью фильтрации и пагинации
+      parameters:
+      - description: Фильтр по группе
+        in: query
+        name: group
+        type: string
+      - description: Фильтр по названию песни
+        in: query
+        name: song
+        type: string
+      - default: 1
+        description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Размер страницы
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить список песен
+      tags:
+      - songs
+    post:
+      consumes:
+      - application/json
+      description: Создать новую песню с текстом
+      parameters:
+      - description: Информация о песне
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/models.Song'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать песню
+      tags:
+      - songs
+  /api/songs/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удалить песню по ID
+      parameters:
+      - description: ID песни
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удалить песню
+      tags:
+      - songs
+    put:
+      consumes:
+      - application/json
+      description: Обновить информацию о песне
+      parameters:
+      - description: ID песни
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Информация о песне
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/models.Song'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Обновить песню
+      tags:
+      - songs
+  /api/songs/{id}/lyrics:
+    get:
+      consumes:
+      - application/json
+      description: Получить текст песни с возможностью пагинации
+      parameters:
+      - description: ID песни
+        in: query
+        name: song_id
+        required: true
+        type: integer
+      - default: 1
+        description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - default: 5
+        description: Размер страницы
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить текст песни
+      tags:
+      - songs
+  /api/songs/info:
+    get:
+      consumes:
+      - application/json
+      description: Получить детальную информацию о песне по группе и названию
+      parameters:
+      - description: Название группы
+        in: query
+        name: group
+        required: true
+        type: string
+      - description: Название песни
+        in: query
+        name: song
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SongDetail'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить информацию о песне
+      tags:
+      - songs
+swagger: "2.0"

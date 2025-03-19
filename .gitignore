@@ -3,3 +3,5 @@
 .cursorignore
 .cursorignorerules
 .vscode
+.env
+app.log

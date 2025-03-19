@@ -16,6 +16,7 @@ func SetupRoutes(r *gin.Engine, songHandler *handlers.SongHandler) {
 			songs.PUT("/:id", songHandler.UpdateSong)
 			songs.DELETE("/:id", songHandler.DeleteSong)
 			songs.GET("/:id/lyrics", songHandler.GetSongLyrics)
+			songs.GET("/info", songHandler.GetSongInfo)
 		}
 	}
 }

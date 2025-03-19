@@ -2,27 +2,61 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"songapp/config"
 	"songapp/handlers"
-	"songapp/routes"
+	"songapp/models"
+	"songapp/services"
+
+	_ "songapp/docs"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+
 func main() {
-	// Инициализация базы данных
-	db := config.InitDB()
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
-	// Создание обработчиков
-	songHandler := handlers.NewSongHandler(db)
+	config.ConnectDB()
 
-	// Настройка маршрутизации
-	r := gin.Default()
-	routes.SetupRoutes(r, songHandler)
+	if err := config.DB.AutoMigrate(&models.Song{}, &models.Lyric{}); err != nil {
+		log.Fatal("Failed to migrate database:", err)
+	}
 
-	// Запуск сервера
-	if err := r.Run(":8080"); err != nil {
+	songService := services.NewSongService("https://www.youtube.com/watch?v=Xsp3_a-PMTw")
+	songHandler := handlers.NewSongHandler(config.DB, songService)
+
+	router := gin.Default()
+
+
+	api := router.Group("/api")
+	{
+		
+		api.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+		songs := api.Group("/songs")
+		{
+			songs.GET("", songHandler.GetSongs)
+			songs.POST("", songHandler.CreateSong)
+			songs.PUT("/:id", songHandler.UpdateSong)
+			songs.DELETE("/:id", songHandler.DeleteSong)
+			songs.GET("/:id/lyrics", songHandler.GetSongLyrics)
+			songs.GET("/info", songHandler.GetSongInfo)
+		}
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	if err := router.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }

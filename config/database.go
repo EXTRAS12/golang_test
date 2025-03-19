@@ -3,26 +3,28 @@ package config
 import (
 	"fmt"
 	"log"
-
-	"songapp/models"
+	"os"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func InitDB() *gorm.DB {
-	dsn := "host=localhost user=postgres password=aib39dac dbname=test_go port=5432 sslmode=disable"
+var DB *gorm.DB
+
+func ConnectDB() {
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_NAME"),
+		os.Getenv("DB_PORT"),
+	)
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	// Автоматическая миграция моделей
-	err = db.AutoMigrate(&models.Song{}, &models.Lyric{})
-	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
-	}
-
-	fmt.Println("Database connected successfully")
-	return db
+	DB = db
+	log.Println("Database connected successfully")
 }
