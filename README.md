@@ -13,7 +13,7 @@ API для работы с песнями и их текстами. Позвол
 ## Структура проекта
 
 ```
-songapp/
+golang_test/
 ├── config/
 │   └── database.go    # Конфигурация подключения к базе данных
 ├── handlers/
@@ -122,7 +122,7 @@ http://localhost:8080/api/swagger/index.html
 1. Клонируйте репозиторий:
 ```bash
 git clone https://github.com/EXTRAS12/golang_test.git
-cd songapp
+cd golang_test
 ```
 
 2. Установите зависимости:
