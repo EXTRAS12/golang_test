@@ -121,7 +121,7 @@ http://localhost:8080/api/swagger/index.html
 
 1. Клонируйте репозиторий:
 ```bash
-git clone <repository-url>
+git clone https://github.com/EXTRAS12/golang_test.git
 cd songapp
 ```
 
