@@ -17,7 +17,6 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
@@ -29,15 +28,14 @@ func main() {
 		log.Fatal("Failed to migrate database:", err)
 	}
 
-	songService := services.NewSongService("https://www.youtube.com/watch?v=Xsp3_a-PMTw")
+	songService := services.NewSongService("http://localhost:8081/api") // api для getinfo
 	songHandler := handlers.NewSongHandler(config.DB, songService)
 
 	router := gin.Default()
 
-
 	api := router.Group("/api")
 	{
-		
+
 		api.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 		songs := api.Group("/songs")

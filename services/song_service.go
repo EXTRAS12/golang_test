@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"songapp/logger"
 	"songapp/models"
+	"time"
 )
 
 type SongService struct {
@@ -27,10 +28,14 @@ func (s *SongService) GetSongInfo(group, songName string) (*models.SongDetail, e
 	params.Add("group", group)
 	params.Add("song", songName)
 
-	requestURL := fmt.Sprintf("%s/info?%s", s.baseURL, params.Encode())
+	requestURL := fmt.Sprintf("%s/songs/info?%s", s.baseURL, params.Encode())
 	logger.Debug("Making request to: %s", requestURL)
 
-	resp, err := http.Get(requestURL)
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get(requestURL)
 	if err != nil {
 		logger.LogError(err, "GetSongInfo")
 		return nil, fmt.Errorf("failed to make request: %w", err)
@@ -46,6 +51,11 @@ func (s *SongService) GetSongInfo(group, songName string) (*models.SongDetail, e
 	if err := json.NewDecoder(resp.Body).Decode(&songDetail); err != nil {
 		logger.LogError(err, "GetSongInfo")
 		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if songDetail.Text == "" {
+		logger.LogError(fmt.Errorf("empty song text"), "GetSongInfo")
+		return nil, fmt.Errorf("empty song text")
 	}
 
 	logger.Debug("Successfully retrieved song info for: %s - %s", group, songName)

@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"songapp/logger"
 	"songapp/models"
@@ -89,7 +91,6 @@ func (h *SongHandler) GetSongInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, songDetail)
 }
 
-
 func (h *SongHandler) GetSongLyrics(c *gin.Context) {
 	logger.Debug("Handling GetSongLyrics request")
 	var filter models.LyricFilter
@@ -145,7 +146,6 @@ func (h *SongHandler) DeleteSong(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Song deleted successfully"})
 }
 
-
 func (h *SongHandler) UpdateSong(c *gin.Context) {
 	logger.Debug("Handling UpdateSong request")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -172,7 +172,6 @@ func (h *SongHandler) UpdateSong(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Song updated successfully"})
 }
 
-
 func (h *SongHandler) CreateSong(c *gin.Context) {
 	logger.Debug("Handling CreateSong request")
 	var song models.Song
@@ -182,39 +181,65 @@ func (h *SongHandler) CreateSong(c *gin.Context) {
 		return
 	}
 
-	songDetail, err := h.songService.GetSongInfo(song.Group, song.Song)
+	
+	if song.Group == "" || song.Song == "" {
+		logger.LogError(fmt.Errorf("missing required fields"), "CreateSong")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group and song fields are required"})
+		return
+	}
+
+	
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		
+		var existingSong models.Song
+		result := tx.Where("\"group\" = ? AND song = ?", song.Group, song.Song).First(&existingSong)
+		if result.Error == nil {
+			return fmt.Errorf("song already exists")
+		}
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return result.Error
+		}
+
+		if err := tx.Create(&song).Error; err != nil {
+			return err
+		}
+
+		songDetail, err := h.songService.GetSongInfo(song.Group, song.Song)
+		if err != nil {
+			return fmt.Errorf("failed to get song details: %w", err)
+		}
+
+		lyrics := models.Lyric{
+			SongID: song.ID,
+			Text:   songDetail.Text,
+			Order:  1,
+		}
+		if err := tx.Create(&lyrics).Error; err != nil {
+			return fmt.Errorf("failed to save lyrics: %w", err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		logger.LogError(err, "CreateSong")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get song details"})
-		return
-	}
-
-	if err := h.db.Create(&song).Error; err != nil {
-		logger.LogError(err, "CreateSong")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	lyrics := models.Lyric{
-		SongID: song.ID,
-		Text:   songDetail.Text,
-		Order:  1,
-	}
-	if err := h.db.Create(&lyrics).Error; err != nil {
-		logger.LogError(err, "CreateSong")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save song lyrics"})
+		switch {
+		case errors.Is(err, gorm.ErrDuplicatedKey), strings.Contains(err.Error(), "already exists"):
+			c.JSON(http.StatusConflict, gin.H{"error": "Song already exists"})
+		default:
+			logger.LogError(err, "CreateSong")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 
 	logger.Info("Successfully created new song: %s - %s (ID: %d)", song.Group, song.Song, song.ID)
-	response := gin.H{
+	songDetail, _ := h.songService.GetSongInfo(song.Group, song.Song) 
+	c.JSON(http.StatusCreated, gin.H{
 		"id":          song.ID,
 		"group":       song.Group,
 		"song":        song.Song,
 		"releaseDate": songDetail.ReleaseDate,
 		"link":        songDetail.Link,
 		"lyrics":      songDetail.Text,
-	}
-
-	c.JSON(http.StatusCreated, response)
+	})
 }
